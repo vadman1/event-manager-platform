@@ -10,7 +10,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>dev.sorokin</groupId>
+    <groupId>io.github.vadman1</groupId>
     <artifactId>event-manager</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>event-manager</name>

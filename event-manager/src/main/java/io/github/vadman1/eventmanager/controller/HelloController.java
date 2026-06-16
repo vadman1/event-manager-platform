@@ -1,4 +1,4 @@
-package dev.sorokin.eventmanager.controller;
+package io.github.vadman1.eventmanager.controller;
 
 import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
