@@ -1,4 +1,4 @@
-package dev.sorokin.eventmanager;
+package io.github.vadman1.eventmanager;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

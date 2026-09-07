@@ -6,11 +6,11 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.7</version>
+        <version>3.5.13</version>
         <relativePath/>
     </parent>
 
-    <groupId>dev.sorokin</groupId>
+    <groupId>io.github.vadman1</groupId>
     <artifactId>event-manager</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>event-manager</name>
