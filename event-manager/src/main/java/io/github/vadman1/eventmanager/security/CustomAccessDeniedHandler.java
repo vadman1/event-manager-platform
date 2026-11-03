@@ -5,8 +5,7 @@ import io.github.vadman1.eventmanager.web.ErrorResponseMessage;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
@@ -17,9 +16,8 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 
 @Component
+@Slf4j
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
-
-    private static final Logger log = LoggerFactory.getLogger(CustomAccessDeniedHandler.class);
 
     private final ObjectMapper objectMapper;
 
