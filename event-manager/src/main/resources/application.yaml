@@ -1,3 +1,7 @@
+events:
+  scheduler:
+    fixed-delay-ms: 10000
+
 server:
   port: 8080
 

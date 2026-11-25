@@ -69,10 +69,7 @@ public class EventService {
         Long locationId = request.locationId() != null ? request.locationId() : event.getLocation().getId();
         var location = findLocationForUpdate(locationId);
         int maxPlaces = request.maxPlaces() != null ? request.maxPlaces() : event.getMaxPlaces();
-        checkCapacity(maxPlaces, location);
-        if (request.maxPlaces() != null && maxPlaces <= event.getOccupiedPlaces()) {
-            throw new IllegalArgumentException("The new limit must exceed the number of occupied places");
-        }
+        validateUpdateCapacity(event, location, maxPlaces, request.maxPlaces() != null);
 
         event.setLocation(location);
         event.setMaxPlaces(maxPlaces);
@@ -95,7 +92,9 @@ public class EventService {
     public void cancel(Long eventId, User user) {
         var event = findForUpdate(eventId);
         checkOwnerOrAdmin(event, user);
-        if (event.getStatus() != EventStatus.WAIT_START || !event.getStartAt().isAfter(OffsetDateTime.now())) {
+        var now = OffsetDateTime.now();
+        var startAt = event.getStartAt();
+        if (event.getStatus() != EventStatus.WAIT_START || startAt.isBefore(now) || startAt.isEqual(now)) {
             throw new IllegalArgumentException("Only an upcoming event can be cancelled");
         }
         event.setStatus(EventStatus.CANCELLED);
@@ -120,6 +119,14 @@ public class EventService {
     private LocationEntity findLocationForUpdate(Long locationId) {
         return locationRepository.findByIdForUpdate(locationId)
                 .orElseThrow(() -> new EntityNotFoundException("Location not found: " + locationId));
+    }
+
+    private void validateUpdateCapacity(EventEntity event, LocationEntity location,
+                                        int maxPlaces, boolean limitProvided) {
+        checkCapacity(maxPlaces, location);
+        if (limitProvided && maxPlaces <= event.getOccupiedPlaces()) {
+            throw new IllegalArgumentException("The new limit must exceed the number of occupied places");
+        }
     }
 
     private void checkCapacity(int maxPlaces, LocationEntity location) {

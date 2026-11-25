@@ -15,7 +15,7 @@ public class EventScheduler {
         this.eventService = eventService;
     }
 
-    @Scheduled(fixedDelay = 10_000)
+    @Scheduled(fixedDelayString = "${events.scheduler.fixed-delay-ms}")
     public void advanceStatuses() {
         var now = OffsetDateTime.now();
         for (Long eventId : eventRepository.findDueEventIds(now)) {
