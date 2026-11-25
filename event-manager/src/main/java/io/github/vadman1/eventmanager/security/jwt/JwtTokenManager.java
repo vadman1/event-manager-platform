@@ -1,11 +1,13 @@
 package io.github.vadman1.eventmanager.security.jwt;
 
 import io.jsonwebtoken.Jwts;
+import io.github.vadman1.eventmanager.user.User;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 @Component
@@ -18,14 +20,16 @@ public class JwtTokenManager {
             @Value("${jwt.secret-key}") String keyString,
             @Value("${jwt.lifetime}") long expirationTime
     ) {
-        this.key = Keys.hmacShaKeyFor(keyString.getBytes());
+        this.key = Keys.hmacShaKeyFor(keyString.getBytes(StandardCharsets.UTF_8));
         this.expirationTime = expirationTime;
     }
 
-    public String generateToken(String login) {
+    public String generateToken(User user) {
         return Jwts
                 .builder()
-                .subject(login)
+                .subject(user.login())
+                .claim("userId", user.id())
+                .claim("role", user.role().name())
                 .signWith(key)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationTime))
