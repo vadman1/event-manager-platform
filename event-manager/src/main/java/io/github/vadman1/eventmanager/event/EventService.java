@@ -20,13 +20,15 @@ public class EventService {
     private final LocationRepository locationRepository;
     private final UserRepository userRepository;
     private final EventConverter converter;
+    private final EventChangePublisher changePublisher;
 
     public EventService(EventRepository eventRepository, LocationRepository locationRepository,
-                        UserRepository userRepository, EventConverter converter) {
+                        UserRepository userRepository, EventConverter converter, EventChangePublisher changePublisher) {
         this.eventRepository = eventRepository;
         this.locationRepository = locationRepository;
         this.userRepository = userRepository;
         this.converter = converter;
+        this.changePublisher = changePublisher;
     }
 
     @Transactional
@@ -71,6 +73,7 @@ public class EventService {
         int maxPlaces = request.maxPlaces() != null ? request.maxPlaces() : event.getMaxPlaces();
         validateUpdateCapacity(event, location, maxPlaces, request.maxPlaces() != null);
 
+        var before = converter.toDto(event);
         event.setLocation(location);
         event.setMaxPlaces(maxPlaces);
         if (request.name() != null) {
@@ -85,7 +88,9 @@ public class EventService {
         if (request.cost() != null) {
             event.setCost(request.cost());
         }
-        return converter.toDto(event);
+        var after = converter.toDto(event);
+        changePublisher.publish(before, after, user.id());
+        return after;
     }
 
     @Transactional
@@ -97,18 +102,24 @@ public class EventService {
         if (event.getStatus() != EventStatus.WAIT_START || startAt.isBefore(now) || startAt.isEqual(now)) {
             throw new IllegalArgumentException("Only an upcoming event can be cancelled");
         }
-        event.setStatus(EventStatus.CANCELLED);
+        changeStatus(event, EventStatus.CANCELLED, user.id());
     }
 
     @Transactional
     public void advanceStatus(Long eventId, OffsetDateTime now) {
         var event = findForUpdate(eventId);
         if (event.getStatus() == EventStatus.WAIT_START && !event.getStartAt().isAfter(now)) {
-            event.setStatus(EventStatus.STARTED);
+            changeStatus(event, EventStatus.STARTED, null);
         } else if (event.getStatus() == EventStatus.STARTED
                 && !event.getStartAt().plusMinutes(event.getDurationMinutes()).isAfter(now)) {
-            event.setStatus(EventStatus.FINISHED);
+            changeStatus(event, EventStatus.FINISHED, null);
         }
+    }
+
+    private void changeStatus(EventEntity event, EventStatus status, Long changedById) {
+        var before = converter.toDto(event);
+        event.setStatus(status);
+        changePublisher.publish(before, converter.toDto(event), changedById);
     }
 
     private EventEntity findForUpdate(Long eventId) {
