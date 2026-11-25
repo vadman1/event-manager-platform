@@ -1,6 +1,8 @@
 package io.github.vadman1.eventmanager.location;
 
+import io.github.vadman1.eventmanager.event.EventRepository;
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -10,13 +12,16 @@ public class LocationService {
 
     private final LocationRepository locationRepository;
     private final LocationEntityConverter entityConverter;
+    private final EventRepository eventRepository;
 
     public LocationService(
             LocationRepository locationRepository,
-            LocationEntityConverter entityConverter
+            LocationEntityConverter entityConverter,
+            EventRepository eventRepository
     ) {
         this.locationRepository = locationRepository;
         this.entityConverter = entityConverter;
+        this.eventRepository = eventRepository;
     }
 
     public Location createLocation(Location location) {
@@ -41,26 +46,30 @@ public class LocationService {
                         .formatted(id)));
     }
 
+    @Transactional
     public Location updateLocation(Long id, Location locationToUpdate) {
-        if (!locationRepository.existsById(id)) {
-            throw new EntityNotFoundException("Not found location by id=%s"
-                    .formatted(id));
+        var location = findForUpdate(id);
+        if (locationToUpdate.capacity() < location.getCapacity()
+                && eventRepository.existsByLocationIdAndMaxPlacesGreaterThan(id, locationToUpdate.capacity())) {
+            throw new IllegalArgumentException("Location capacity is below an existing event limit");
         }
-
-        LocationEntity locationEntityToUpdate = entityConverter.toEntity(locationToUpdate);
-        locationEntityToUpdate.setId(id);
-
-        var updatedLocation = locationRepository.save(locationEntityToUpdate);
-        return entityConverter.toDomain(updatedLocation);
+        location.setName(locationToUpdate.name());
+        location.setAddress(locationToUpdate.address());
+        location.setCapacity(locationToUpdate.capacity());
+        return entityConverter.toDomain(location);
     }
 
+    @Transactional
     public void deleteLocation(Long id) {
-        if (!locationRepository.existsById(id)) {
-            throw new EntityNotFoundException("Not found location by id=%s"
-                    .formatted(id));
+        var location = findForUpdate(id);
+        if (eventRepository.existsByLocationId(id)) {
+            throw new IllegalArgumentException("Cannot delete a location with events");
         }
-
-        locationRepository.deleteById(id);
+        locationRepository.delete(location);
     }
 
+    private LocationEntity findForUpdate(Long id) {
+        return locationRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new EntityNotFoundException("Not found location by id=" + id));
+    }
 }
